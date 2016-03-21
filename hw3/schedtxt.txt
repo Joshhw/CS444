@@ -1,0 +1,37 @@
+  for(i = 0; i < NPROC; i++){
+    kprintf("entered loop\n");
+    if(curproc == &proctab[i]){
+      kprintf("found proctab\n");
+      if(proctab[i].p_status == ZOMBIE){
+        kprintf("found zombie process\n");
+        sprintf(text, "|(%dZ-", i);
+        break;
+      } else {
+        kprintf("building text\n");
+        sprintf(text, "|(%d-", i);
+        break;
+      }
+    }
+  }
+  strcat(dbgmsg, text);
+  //int oldNum, newNum;
+
+  for (i=1; i<NPROC; i++){
+    if (proctab[i].p_status == RUN) {
+      curproc=&proctab[i];
+      kprintf("building end\n");
+      sprintf(text2, "%d)|", i);
+      strcat(dbgmsg, text2);
+      break;
+    }
+    else if (proctab[i].p_status == ZOMBIE) {
+      numZombie++;
+    }
+  }
+
+  if(numZombie == NPROC -1){
+    curproc = &proctab[0];
+  }
+  kprintf("print message in debug log\n");
+  debug_log(dbgmsg);
+  asmswtch(oldCursor,curproc);

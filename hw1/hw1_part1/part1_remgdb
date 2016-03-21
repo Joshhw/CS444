@@ -1,0 +1,183 @@
+Script started on Sun 27 Sep 2015 11:52:14 AM EDT
+joshhw@itserver6:~/cs444/hw1/hw1_part1$ cat names
+Team: dog vomit
+Joshua Decosta
+Thomas Martin
+joshhw@itserver6:~/cs444/hw1/hw1_part1$ cat hw1_remgdb-testio-remake 
+Script started on Sun Sep 27 11:33:56 2015
+[?1034hbash-3.2$ ssh tuser@10.0.1.26
+tuser@10.0.1.26's password: 
+Linux tutor-vserver 2.6.32-5-686 #1 SMP Fri Sep 9 20:51:05 UTC 2011 i686
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Sun Sep 27 11:20:15 2015 from 10.0.1.6
+]0;tuser@tutor-vserver: ~tuser@tutor-vserver:~$ ls
+[0m[01;34mhw1[0m  [01;34minclude[0m  [01;34mlib[0m  [01;34mtestaout[0m  test.c  [01;34mtestelf[0m  testelf.syms  test.s
+]0;tuser@tutor-vserver: ~tuser@tutor-vserver:~$ cd hw1
+]0;tuser@tutor-vserver: ~/hw1tuser@tutor-vserver:~/hw1$ ls
+hw1.doc   io_public.h  remgdb-testio.script  testio-orig.script.txt
+io.c      makefile     testio.c              tty.c
+ioconf.c  [0m[01;34mqueue[0m        testio.lnx            tty.h
+ioconf.h  README       testio-orig.script    tty_public.h
+]0;tuser@tutor-vserver: ~/hw1tuser@tutor-vserver:~/hw1$ gdb test.lnx[K[K[K[K[K[Kstio.lnx
+GNU gdb (GDB) 7.0.1-debian
+Copyright (C) 2009 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "i486-linux-gnu".
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>...
+Reading symbols from /home/tuser/hw1/testio.lnx...done.
+(gdb) tar rem /dev/ttyS0
+Remote debugging using /dev/ttyS0
+0x00100100 in ?? ()
+(gdb) b main
+Breakpoint 1 at 0x10034c: file testio.c, line 30.
+(gdb) c
+Continuing.
+
+Breakpoint 1, main () at testio.c:30
+30	  lib_console_dev = sys_get_console_dev();  /* SAPC support lib fn */
+(gdb) l
+25	{
+26	  char buf[BUFLEN];
+27	  int got, i, lib_console_dev, ldev;
+28	
+29	  /* Determine the SAPC's "console" device, the serial port for user i/o */
+30	  lib_console_dev = sys_get_console_dev();  /* SAPC support lib fn */
+31	  switch(lib_console_dev) {
+32	  case COM1: ldev = TTY0;	/* convert to our dev #'s */
+33	    break;
+34	  case COM2: ldev = TTY1;
+(gdb) 
+35	    break;
+36	  default: printf("Unknown console device\n");
+37	    return 1;
+38	  }
+39	  kprintf("Running with device TTY%d\n",ldev);
+40	  /* Now have a usable device to talk to with i/o package-- */
+41	
+42	  ioinit();  /* Initialize devices */
+43	  kprintf("\nTrying simple write...\n");
+44	  got = write(ldev,"hi!\n",4);
+(gdb) b 43
+Breakpoint 2 at 0x1003b2: file testio.c, line 43.
+(gdb) c
+Continuing.
+
+Breakpoint 2, main () at testio.c:43
+43	  kprintf("\nTrying simple write...\n");
+(gdb) n
+44	  got = write(ldev,"hi!\n",4);
+(gdb) n
+45	  kprintf("write of 4 returned %d\n",got);
+(gdb) n
+46	  delay();  /* time for output to finish, once write-behind is working */
+(gdb) n
+48	  kprintf("Trying longer write\n");
+(gdb) n
+49	  got = write(ldev, "abcdefghi", 9);
+(gdb) l
+44	  got = write(ldev,"hi!\n",4);
+45	  kprintf("write of 4 returned %d\n",got);
+46	  delay();  /* time for output to finish, once write-behind is working */
+47	
+48	  kprintf("Trying longer write\n");
+49	  got = write(ldev, "abcdefghi", 9);
+50	  kprintf("write of 9 returned %d\n",got);
+51	  delay();  /* time for output to finish, once write-behind is working */
+52	
+53	  for (i = 0; i < BUFLEN; i++)
+(gdb) 
+54	      buf[i] = 'A'+ i/2;
+55	  kprintf("\nTrying write of %d-char string...\n", BUFLEN);
+56	  got = write(ldev, buf, BUFLEN);
+57	  kprintf("\nwrite returned %d\n", got);
+58	  delay();
+59	
+60	  kprintf("\nType some input to test typeahead while looping for delay...\n");
+61	  delay();
+62	  got = read(ldev, buf, 10);	/* should wait for all 10 chars, once fixed */
+63	  kprintf("\nGot %d chars into buf. Trying write of buf...\n", got);
+(gdb) b 61
+Breakpoint 3 at 0x1004b5: file testio.c, line 61.
+(gdb) c
+Continuing.
+
+Breakpoint 3, main () at testio.c:61
+61	  delay();
+(gdb) b 63
+Breakpoint 4 at 0x1004d1: file testio.c, line 63.
+(gdb) c
+Continuing.
+
+Breakpoint 4, main () at testio.c:63
+63	  kprintf("\nGot %d chars into buf. Trying write of buf...\n", got);
+(gdb) n
+64	  write(ldev, buf, got);
+(gdb) n
+66	  kprintf("\nTrying another read right away...\n");
+(gdb) n
+67	  got = read(ldev, buf, 10);	/* should wait for input, once fixed */
+(gdb) l
+62	  got = read(ldev, buf, 10);	/* should wait for all 10 chars, once fixed */
+63	  kprintf("\nGot %d chars into buf. Trying write of buf...\n", got);
+64	  write(ldev, buf, got);
+65	
+66	  kprintf("\nTrying another read right away...\n");
+67	  got = read(ldev, buf, 10);	/* should wait for input, once fixed */
+68	  kprintf("\nGot %d chars on second read\n",got);
+69	  if (got == 0) 
+70	      kprintf("nothing in buffer\n");	/* expected result until fixed */
+71	  else 
+(gdb) 
+72	      write(ldev, buf, got);	/* should write 10 chars once fixed */
+73	
+74	  kprintf("\n\nNow turning echo off--\n");
+75	  control(ldev, ECHOCONTROL, 0);
+76	  kprintf("\nType some input, note lack of echoes...\n");
+77	  delay();
+78	  got = read(ldev, buf, 20);
+79	  kprintf("\nTrying write of buf...\n");
+80	  write(ldev, buf, got);
+81	  kprintf("\nAsked for 20 characters; got %d\n", got);
+(gdb) b 81
+Breakpoint 5 at 0x1005bb: file testio.c, line 81.
+(gdb) c
+Continuing.
+
+Breakpoint 5, main () at testio.c:81
+81	  kprintf("\nAsked for 20 characters; got %d\n", got);
+(gdb) n
+82	  return 0;
+(gdb) c
+Continuing.
+
+Program received signal SIGTRAP, Trace/breakpoint trap.
+startupc () at startup.c:4
+4	startup.c: No such file or directory.
+	in startup.c
+(gdb) q
+A debugging session is active.
+
+	Inferior 1 [Remote target] will be killed.
+
+Quit anyway? (y or n) y
+]0;tuser@tutor-vserver: ~/hw1tuser@tutor-vserver:~/hw1$ exit
+logout
+Connection to 10.0.1.26 closed.
+bash-3.2$ exit
+exit
+
+Script done on Sun Sep 27 11:49:26 2015
+joshhw@itserver6:~/cs444/hw1/hw1_part1$ exit
+exit
+
+Script done on Sun 27 Sep 2015 11:55:10 AM EDT

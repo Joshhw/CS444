@@ -1,0 +1,356 @@
+Script started on Mon 02 Nov 2015 03:09:27 PM EST
+joshhw@itserver6:~/cs444/hw2$ cat crt0.s
+# asm startup file
+# very first module in load
+
+.globl _ustart
+
+_ustart:
+   movl $0x3ffff0, %esp   # set user program stack
+   movl $0, %ebp          # make debugger backtrace terminate here
+   call _main             # call C startup, which calls user main
+   call _exit             # call assembly exit program
+joshhw@itserver6:~/cs444/hw2$ cat io.h
+cat: io.h: No such file or directory
+joshhw@itserver6:~/cs444/hw2$ cati[K io.c
+/*********************************************************************
+*
+*       file:           io.c
+*       author:         betty o'neil
+*
+*       device-independent i/o package for SAPC
+*
+*/
+/* hw2: delete include of io_public.h here, */
+/*  put kernel-fn proto's, ioinit, sysread, etc., in tsystm.h */
+#include <cpu.h>
+#include "tsystm.h"
+#include "ioconf.h"
+#include "tsyscall.h"
+
+/*====================================================================
+*
+* i/o initialization loop for SAPC devices
+*
+*/
+
+void ioinit()
+{
+  int i;
+
+  cli();
+  for (i = 0; i < NDEVS; i++)
+    devtab[i].dvinit(i);	/* call device-specific init routine */
+  sti();
+}
+
+/*====================================================================
+*
+*       read function calling routine for SAPC devices
+*       (hw2: rename to "sysread" for the kernel)
+*/
+
+int sysread(int dev, char *buf, int nchar)
+{
+  if (dev < 0 || dev >= NDEVS) return -1;      /* fail */
+  return devtab[dev].dvread(dev, buf, nchar); /* call dev-specific routine */
+}
+
+/*====================================================================
+*
+*       write function calling routine for SAPC devices
+*       (rename to "syswrite" for the kernel)
+*/
+int syswrite(int dev, char *buf, int nchar)
+{
+  if (dev < 0 || dev >= NDEVS) return -1;       /* fail */
+  return devtab[dev].dvwrite(dev, buf, nchar); /* call dev-specific routine */
+}
+joshhw@itserver6:~/cs444/hw2$ cat ioconf.h
+/*********************************************************************
+*
+*       file:           conf.h
+*       author:         betty o'neil
+*
+*       Device table declarations
+*
+*/
+
+#ifndef CONF_H
+#define CONF_H
+
+struct  device  {               /* device table entry */
+    int	dvnum;			/* dev no. */
+    void (*dvinit)(int dev);	/* init routine for dev */
+    int	(*dvread)(int dev, char *buf, int n);   /* read fn for dev */
+    int	(*dvwrite)(int dev, char *buf, int n);  /* write fn for dev */
+    int (*dvcontrol)(int dev, int code, int x); /* control fn for dev */
+    int	dvbaseport;		/* base port for hardware regs */
+    int dvdata;			/* addr of software data */
+};
+
+extern	struct	device devtab[]; /* one struct per device */
+
+/* Note this needs to agree with # devs in ioconf.c */
+#define NDEVS 2
+#endif
+joshhw@itserver6:~/cs444/hw2$ cat startup0.s
+# asm startup file
+# very first module in load
+.globl _endexit
+
+
+  movl $0x3ffff0, %esp   # set user program stack
+  movl $0, %ebp          # make debugger backtrace terminate here
+  call _startupc         # call C startup, which calls user main
+  int $3                 # return to Tutor
+
+_endexit:
+  movl 4(%esp), %eax     # grab sysexit number
+  int $3                 # return to Tutor
+joshhw@itserver6:~/cs444/hw2$ cat startup1.c
+/* C startup file, called from startup0.s-- */
+
+void startupc()
+{
+  clr_bss();                /* clear BSS area (uninitialized data) */
+  init_devio();			        /* latch onto Tutor-supplied info, code */
+  (void)kernel_init();			/* execute user-supplied main */
+}
+joshhw@itserver6:~/cs444/hw2$ cat sysentry.s
+# like linux SAVE_MOST and RESTORE_MOST macros in irq.h
+.text
+.globl _syscall
+.globl _syscallc
+
+_syscall:
+	pushl %edx	# save C scratch regs
+	pushl %ecx
+	pushl %ebx
+	pushl %eax
+	call _syscallc  # call C interrupt handler
+	popl %eax
+	popl %ebx
+	popl %ecx
+	popl %edx
+	iret
+joshhw@itserver6:~/cs444/hw2$ cat tuni
+tunistd.h  tunix.c    tunix.opc  
+joshhw@itserver6:~/cs444/hw2$ cat tunix.c
+/* Tiny unix aka Tunix.c:
+ * - calls kernel_init
+ * - calls main
+ * - returns to startup
+ * - then shuts down
+*/
+#include <cpu.h>
+#include <gates.h>
+#include <stdio.h>
+#include <pic.h>
+#include "io_public.h"
+#include "tsystm.h"
+#include "tsyscall.h"
+
+void kernel_init(void);
+void set_trap_gate(int n, IntHandler *inthand_addr);
+void debug_set_trap_gate(int n, IntHandler *inthand_addr, int debug);
+void syscallc(int user_eax, int arg1, char * arg2, int arg3);
+
+/* tell C about the assembler shell routine */
+extern void syscall(void);
+/* tell C about the assebler for exit */
+// extern void endexit(int exitcode);
+/* tell C about the ustart fuction shell routine */
+extern void ustart(void);
+/* included for calling using C */
+extern void locate_idt(unsigned int *limitp, char ** idtp);
+
+
+void kernel_init(void)
+{
+  /* call ioinit to initialize io package/possibly kernel_init */
+  ioinit();
+  /* call trap gate with correct parameters to initialize trap */
+  set_trap_gate(0x80, &syscall);
+  /* call main, ref to suggested steps in hw2 eventually ustart */
+  ustart();
+  return;
+}
+
+void syscallc(int user_eax, int arg1, char * arg2, int arg3)
+{
+  switch (user_eax)
+  {
+    case SYSREAD_NUM:
+      user_eax = sysread(arg1, arg2, arg3);
+      break;
+    case SYSWRITE_NUM:
+      user_eax = syswrite(arg1, arg2, arg3);
+      break;
+    case SYSEXIT_NUM:
+      user_eax = sysexit(arg1);
+      break;
+    default:
+      printf("invalid syscall I.D.: %d\n", user_eax);
+      break;
+
+
+  }
+}
+
+int sysexit(int exitcode)
+{
+  return endexit(exitcode);
+
+}
+
+
+/* non-debug version */
+void set_trap_gate(int n, IntHandler *inthand_addr)
+{
+  debug_set_trap_gate(n, inthand_addr, 0);
+}
+
+/* write the nth idt descriptor as an interrupt gate to inthand_addr */
+void debug_set_trap_gate(int n, IntHandler *inthand_addr, int debug)
+{
+  char *idt_LAaddr;		/* linear address of IDT */
+  char *idt_VAaddr;		/* virtual address of IDT */
+  Gate_descriptor *idt, *desc;
+  unsigned int limit = 0;
+
+  if (debug)
+    printf("Calling locate_idt to do sidt instruction...\n");
+  locate_idt(&limit,&idt_LAaddr);
+  /* convert to virtual address, i.e., ordinary address */
+  idt_VAaddr = idt_LAaddr - KERNEL_BASE_LA;  /* usable address of IDT */
+  /* convert to a typed pointer, for an array of Gate_descriptor */
+  idt = (Gate_descriptor *)idt_VAaddr;
+  if (debug)
+    printf("Found idt at %x, lim %x\n",idt, limit);
+  desc = &idt[n];		/* select nth descriptor in idt table */
+  /* fill in descriptor */
+  if (debug)
+    printf("Filling in desc at %x with addr %x\n",(unsigned int)desc,
+	   (unsigned int)inthand_addr);
+  desc->selector = KERNEL_CS;	/* CS seg selector for int. handler */
+  desc->addr_hi = ((unsigned int)inthand_addr)>>16; /* CS seg offset of inthand  */
+  desc->addr_lo = ((unsigned int)inthand_addr)&0xffff;
+  desc->flags = GATE_P|GATE_DPL_KERNEL|GATE_TRAPGATE; /* valid, interrupt hw2: modified use */
+  desc->zero = 0;
+}
+joshhw@itserver6:~/cs444/hw2$ cat test
+test1.c     test1.lnx   test1.opc   test1.syms  testio.c    
+joshhw@itserver6:~/cs444/hw2$ cat test1.c
+
+
+#include <stdio.h>
+#include "io_public.h"
+
+#define MILLION 1000000
+#define DELAYLOOPCOUNT (400 * MILLION)
+#define BUFLEN 80
+
+void delay(void);
+
+int main(void)
+{
+  char buf[BUFLEN];
+  int got, lib_console_dev, ldev;
+
+  /* Determine the SAPC's "console" device, the serial port for user i/o */
+  lib_console_dev = sys_get_console_dev();  /* SAPC support lib fn */
+  switch(lib_console_dev) {
+  case COM1: ldev = TTY0;	/* convert to our dev #'s */
+    break;
+  case COM2: ldev = TTY1;
+    break;
+  default: printf("Unknown console device\n");
+    return 1;
+  }
+  kprintf("Running with device TTY%d\n",ldev);
+  /* Now have a usable device to talk to with i/o package-- */
+
+  kprintf("\nTrying simple write(4 chars)...\n");
+  got = write(ldev,"hi!\n",4);
+  kprintf("write of 4 returned %d\n",got);
+  delay();  /* time for output to finish, once write-behind is working */
+
+  kprintf("Trying longer write (9 chars)\n");
+  got = write(ldev, "abcdefghi", 9);
+  kprintf("write of 9 returned %d\n",got);
+  delay();  /* time for output to finish, once write-behind is working */
+
+  kprintf("\nType 10 chars input to test typeahead while looping for delay...\n");
+  delay();
+  got = read(ldev, buf, 10);	/* should wait for all 10 chars, once fixed */
+  kprintf("\nGot %d chars into buf. Trying write of buf...\n", got);
+  write(ldev, buf, got);
+  delay();
+
+  exit(1);
+  kprintf("this is after exit");
+
+}
+
+/* the faster the machine you're on, the longer this loop must be */
+void delay()
+{
+  int i;
+
+  kprintf("<doing delay>\n");
+  for (i = 0; i < DELAYLOOPCOUNT; i++)
+   ;
+}
+joshhw@itserver6:~/cs444/hw2$ cat ulib.s
+# file :	ulib.s
+# description:	assembler routines for read, write, exit
+# hw2:	 add read, exit
+
+.globl _write,_read,_exit
+.text
+# following Linux system call linkage
+# user stack when execution reaches _write:
+# esp-> return addr
+#       first arg  (to be put in ebx for syscall)
+#       second arg (to be put in ecx)
+#       third arg  (to be put in edx)
+
+# user stack after pushl %ebx, needed to preserve %ebx (not a C scratch reg)
+# esp->  saved-ebx
+# 4(esp) return addr
+# 8(esp) first arg  (to be put in ebx for syscall)
+#12(esp) second arg (to be put in ecx)
+#16(esp) third arg  (to be put in edx)
+
+_write:
+	pushl %ebx                    # save the value of ebx
+	movl 8(%esp),%ebx             # first arg in ebx
+	movl 12(%esp),%ecx            # second arg in ecx
+	movl 16(%esp),%edx            # third arg in edx
+	movl $4,%eax                  # syscall # in eax
+  int $0x80                     # trap to kernel
+	popl  %ebx                    # restore the value of ebx
+	ret
+
+_read:
+	pushl %ebx                    # save the value of ebx
+	movl 8(%esp),%ebx             # first arg in ebx
+	movl 12(%esp),%ecx            # second arg in ecx
+	movl 16(%esp),%edx            # third arg in edx
+	movl $3,%eax                  # syscall # in eax
+	int $0x80                     # trap to kernel
+	popl  %ebx                    # restore the value of ebx
+	ret
+
+_exit:
+	pushl %ebx                    # save the value of ebx
+	movl 8(%esp), %ebx						# save first and only arg in ebx
+	movl $1, %eax                 # syscall # in eax
+	int $0x80                     # trap to kernel
+	popl %ebx                     # restore the value of ebx
+	ret
+joshhw@itserver6:~/cs444/hw2$ exit
+exit
+
+Script done on Mon 02 Nov 2015 03:11:46 PM EST

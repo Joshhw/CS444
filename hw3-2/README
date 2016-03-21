@@ -1,0 +1,38 @@
+CS444 hw2 Solution
+With optional parts: table-driven system calls, return value 
+of system call supported and printed out in shutdown report.
+Also, debug logging to memory is implemented: see debug_log()
+in tunix.c.
+
+Shared between user and kernel:
+
+   tty_public.h: TTY device numbers
+   tsyscall.h: syscall numbers (like UNIX sys/syscall.h)
+
+Kernel files:
+
+   tsystm.h: syscall dispatch, kernel fn protos (like UNIX sys/systm.h)
+   startup0.s: same as $pclibsrc/startup0.s.  Sets up stack, calls
+        into startup1.c
+   startup1.c: Same as $pclibsrc/startup.c, but calls your kernel
+        initialization routine instead of main.
+   tunix.c:  main kernel code: init, system call dispatch, shutdown
+   sysentry.s: system call trap handler assembly envelope.  Calls syscallc.
+   io.h, io.c, ioconf.h, ioconf.c: device-independent io system
+   tty.c, tty.h, tty_public.h:  tty driver from hw1, almost unchanged,
+                                   (now tty.c does some debug_log calls)
+
+User-level files:
+
+   tunistd.h: syscall prototypes (like UNIX unistd.h)
+   test1.c:  has main(). User program.
+   ulib.s:  library routines for syscalls: _read, _write, _exit
+   crt0.s:  user-level "C startup module"  calls _main,
+  	does exit syscall.  Entry point _ustart.
+
+test1.sh: provided shell script for automatic run, with input
+test1.script: script from run of system, showing debug log output
+makefile:  make U=test1    makes test1.lnx for user program test1.c
+
+
+

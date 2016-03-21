@@ -1,0 +1,22 @@
+Team Dog Vomit: Thomas Martin Joshua Decosta
+
+edits needed for lp.h: 
+
+In order to achieve a semi-functional printer, we would need to edit the device structures to include a section with at 
+least the address for LPT1 (0x378) to access the parallel port bits that are required to access the printer. The setup 
+seems to be similar to how our tty read/write functions would work so I imagine we could use a modified read/write to 
+gain functionality with line printer. The way we could do this is setup a base port (similar to the process we use to 
+create a base port to access the tty functions) and check certain bits, for instance we could write the bits to the data 
+port (baseport+LP_DATA) and turn the strobe (baseport+LP_PSTROBE) on to indicate there is correct data ready to transmit. 
+The coding might be a little bit confusing but nothing too terrible.We could essentially create a similar pattern with 
+the structures of the ioconf.c devices. Naming them LPT1/LPT2 (if two parallel ports were available).
+
+this is something that it could look like if implemented:
+
+struct	device	devtab[] = 
+{ {0,ttyinit, ttyread, ttywrite, ttycontrol, 0x3f8,(int)&ttytab[0]}, /* TTY0 */ 
+{1,ttyinit, ttyread, ttywrite, ttycontrol, 0x2f8,(int)&ttytab[1]},/* TTY1*/ 
+{2,ppinit, ppread, ppwrite, ppcontrol, 0x378,(int)&pptab[1]},/* LPT1*/ 
+{3,ppinit, ppread, ppwrite, ppcontrol, 0x278,(int)&pptab[1]},/* LPT2*/
+};
+

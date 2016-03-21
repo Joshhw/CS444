@@ -1,0 +1,19 @@
+Files for CS444 device-independent i/o package for SAPC
+
+io_public.h--applications-level header: dev indep i/o API protos
+tty_public.h--app-level header: tty-specific info
+
+ioconf.h--def of device struct, top-level info on device
+ioconf.c--actual device table, array of device structs, one for each device
+io.c--top-level device-independent calls: ioinit, read, write, control
+
+Device type tty (for COM lines):
+tty.h--internal header file
+tty.c--tty device driver, i.e., device-specific code
+
+makefile--  make testio.lnx   builds testio.c with io package
+
+testio.c--applications-level program exercising io package
+
+testio-orig.script-- run of testio.lnx as provided
+remgdb-testio.script-- remote gdb session with the provided testio.lnx

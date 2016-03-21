@@ -1,0 +1,66 @@
+Script started on Sun 27 Sep 2015 11:06:10 AM EDT
+joshhw@itserver6:~/cs444/hw1/hw1_part1$ cat names
+Team: dog vomit
+Joshua Decosta
+Thomas Martin
+joshhw@itserver6:~/cs444/hw1/hw1_part1$ cat typescript
+Script started on Sun 27 Sep 2015 10:58:56 AM EDT
+tuser@tutor-vserver:~/thing/hw1$ mtip -f testio.lnx
+For command help, type ~?
+For help on args, rerun without args
+Code starts at 0x100100
+Using board # 1 
+~downloading testio.lnx
+
+........Done.
+
+Download done, setting EIP to 100100.
+Tutor> go 100100
+Running with device TTY1
+
+Trying simple write...
+hi!
+write of 4 returned 4
+<doing delay>
+abTrying longer write
+abcdefghiwrite of 9 returned 9
+<doing delay>
+shi
+Trying write of 80-char string...
+AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTTUUVVWWXXYYZZ[[\\]]^^__``aabbccddeeffgghh
+write returned 80
+<doing delay>
+hsfhsdafkjas
+Type some input to test typeahead while looping for delay...
+<doing delay>
+lfalsfjlsdfkj
+Got 6 chars into buf. Trying write of buf...
+abshih
+Trying another read right away...
+
+Got 0 chars on second read
+nothing in buffer
+
+
+Now turning echo off--
+
+Type some input, note lack of echoes...
+<doing delay>
+
+Trying write of buf...
+asdsaf
+Asked for 20 characters; got 6
+Exception 3 at EIP=00100110: Breakpoint
+Tutor> skjdf     exit
+No such command: exit, use h command for help
+Tutor> ~q 
+Quit handler: 
+killing process 2691 Leaving board #1
+tuser@tutor-vserver:~/thing/hw1$ exit
+exit
+
+Script done on Sun 27 Sep 2015 11:00:36 AM EDT
+joshhw@itserver6:~/cs444/hw1/hw1_part1$ exit
+exit
+
+Script done on Sun 27 Sep 2015 11:06:19 AM EDT

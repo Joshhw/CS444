@@ -1,0 +1,61 @@
+script of run of testio.lnx as provided for hw1
+While this was running, I typed "123456789012345..."
+This script shows:
+1. write works already.
+2. read can deliver previously typed-in chars ("typeahead" chars)
+3. read does not wait for chars yet, it just returns what's there already.
+
+Script started on Wed Sep  8 19:13:17 2004
+warning: could not update utmp entry  <---ignore
+u18(1)%	mtip -b 8 -f testio.lnx
+For command help, type ~?
+For help on args, rerun without args
+Code starts at 0x100100
+Using board # 8 
+
+Tutor> ~downloading testio.lnx
+........Done.
+
+Download done, setting EIP to 100100.
+Tutor> go 100100
+Running with device TTY1
+
+Trying simple write...
+hi!
+write of 4 returned 4
+<doing delay>
+1234567Trying longer write        <--echoes of first chars input
+abcdefghiwrite of 9 returned 9
+<doing delay>
+8901234567
+Trying write of 80-char string...
+AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTTUUVVWWXXYYZZ[[\\]]^^__``aabbccddeeffgghh
+write returned 80
+<doing delay>
+8901234567
+Type some input to test typeahead while looping for delay...
+<doing delay>                         
+89012345
+Got 6 chars into buf. Trying write of buf...
+1263456                          <--copies of the first 6 chars input
+Trying another read right away...
+
+Got 1 chars on second read      <---asked for 10, got 1 (needs fixing)
+6
+
+Now turning echo off--
+
+Type some input, note lack of echoes...
+<doing delay>
+
+Trying write of buf...
+789012
+Asked for 20 characters; got 6
+Exception 3 at EIP=00100110: Breakpoint
+Tutor> 67890                 <--The last few chars got typed to Tutor
+No such command: 67890, use h command for help
+Tutor> ~q 
+Quit handler: 
+killing process 26615 Leaving board #8
+u18(2)%	exit
+script done on Wed Sep  8 19:14:24 2004
